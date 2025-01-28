@@ -2,14 +2,14 @@
 
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange?logo=swift) ![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20visionOS%20%7C%20tvOS%20%7C%20watchOS-blue?logo=apple)
 
-A lightweight Swift protocol for managing essential metadata of Core Data entities. This provides a standardised way to ensure entities are uniquely identifiable and include required metadata, such as creation timestamps.
+A lightweight wrapper for managing essential metadata of Core Data entities. This provides a standardised way to ensure entities are uniquely identifiable and include required metadata, such as creation timestamps.
 
 ## Features
-	•	Ensures entities have a unique identifier.
-	•	Provides a structured approach for loading and creating database records.
-	•	Applies essential metadata when a new entity is created.
-	•	Keeps concerns separate from business logic.
-	•	Prevents duplicate record creation.
+- Ensures entities have a unique identifier.
+- Provides a structured approach for loading and creating database records.
+- Applies essential metadata when a new entity is created.
+- Keeps concerns separate from business logic.
+- Prevents duplicate record creation.
 
 ## Installation
 
