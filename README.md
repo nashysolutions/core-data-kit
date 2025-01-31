@@ -36,7 +36,7 @@ let package = Package(
 
 ## Usage
 
-To conform to CoreDataKit, define an entity that conforms to `IdentifiableEntity` and define a registrar for your Core Data model:
+To conform to CoreDataKit, create an entity that adopts `IdentifiableEntity` and define a corresponding registrar. The default implementations of each make certain assumptions about your model, so be sure to verify them.
 
 ```swift
 import CoreData
@@ -95,22 +95,10 @@ do {
 ```swift
 do {
     let registrar = ChatEntityRegistrar(context: context, id: UUID())
-    try registrar.insert()
-    try context.save()
+    try registrar.insert(save: true)
 } catch CoreDataEntityError.alreadyExists(let objectID) {
     //
 } catch {
     print("Failed to create entity: \(error)")
-}
-```
-
-### Error Handling
-
-The protocol uses CoreDataEntityRegistrarError to standardise error cases:
-
-```swift
-enum CoreDataEntityRegistrarError: Error {
-    case alreadyExists
-    case notFound
 }
 ```
