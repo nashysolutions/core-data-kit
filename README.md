@@ -18,27 +18,44 @@ A lightweight wrapper for managing essential metadata of Core Data entities. Thi
 Add the package to your Package.swift:
 
 ```swift
-dependencies: [
-    .package(url: "https://github.com/nashysolutions/CoreDataKit.git", from: "1.0.0")
-]
+import PackageDescription
+
+let package = Package(
+    dependencies: [
+        .package(url: "git@github.com:nashysolutions/core-data-kit.git", .upToNextMinor(from: "2.0.0")),
+    ],
+    targets: [
+        .target(
+            dependencies: [
+                .product(name: "CoreDataKit", package: "core-data-kit")
+            ]
+        )
+    ]
+)
 ```
 
 ## Usage
 
-To conform to CoreDataKit, define an entity registrar for your Core Data model:
+To conform to CoreDataKit, define an entity that conforms to `IdentifiableEntity` and define a registrar for your Core Data model:
 
 ```swift
 import CoreData
 
+class Chat: NSManagedObject, IdentifiableEntity {
+
+   var id: UUID {
+       get { return self.identifier }
+       set { self.identifier = newValue }
+   }
+   
+   @NSManaged var identifier: UUID
+   /// etc
+}
+
 struct ChatEntityRegistrar: CoreDataEntityRegistrar {
+
     let context: NSManagedObjectContext
     let id: UUID
-
-    func load() throws -> Chat? {
-        let request = Chat.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
-        return try context.fetch(request).first
-    }
 
     // only fires for new records
     func applyInitialMetadata(_ entity: Chat) {
@@ -47,27 +64,43 @@ struct ChatEntityRegistrar: CoreDataEntityRegistrar {
 }
 ```
 
-### Creating an Entity if It Does Not Exist
-
-```swift
-do {
-    let registrar = ChatEntityRegistrar(context: context, id: UUID())
-    try registrar.create()
-} catch {
-    print("Failed to create entity: \(error)")
-}
-```
-
-### Ensuring an Entity Exists
+### Query by primary key (someUUID)
 
 ```swift
 do {
     let registrar = ChatEntityRegistrar(context: context, id: someUUID)
-    // let chat: Chat? = try registrar.load()
-    let chat: Chat = try registrar.require() // elimates optional, but throws 'not found error' if not in db
+    let chat: Chat = try registrar.query()
     print("Chat exists:", chat)
-} catch {
+} catch CoreDataEntityError.notFound {
     print("Entity not found:", error)
+} catch {
+    //
+}
+
+do {
+    let registrar = ChatEntityRegistrar(context: context, id: someUUID)
+    let chat: Chat = try registrar.queryOrInsert()
+    print("Chat already existed or was created:", chat)
+    if context.hasChanges {
+        try context.save()
+    }
+}
+} catch {
+    //
+}
+```
+
+### Inserting
+
+```swift
+do {
+    let registrar = ChatEntityRegistrar(context: context, id: UUID())
+    try registrar.insert()
+    try context.save()
+} catch CoreDataEntityError.alreadyExists(let objectID) {
+    //
+} catch {
+    print("Failed to create entity: \(error)")
 }
 ```
 
@@ -79,47 +112,5 @@ The protocol uses CoreDataEntityRegistrarError to standardise error cases:
 enum CoreDataEntityRegistrarError: Error {
     case alreadyExists
     case notFound
-    case unexpectedError(Error)
-}
-```
-
-### Retro-Active Modelling
-
-You may want to add the following to your project, if your attribute naming for `identifier` is consistent.
-
-```swift
-extension IdentifiableEntity {
-
-    static var identifierAttributeName: String {
-        return "identifier"
-    }
-}
-
-extension CoreDataEntityRegistrar where T.ID == UUID {
-
-    func load() throws(CoreDataEntityRegistrarError) -> T? {
-        
-        let fetchRequest = T.fetchRequest()
-        fetchRequest.fetchLimit = 1
-        fetchRequest.predicate = NSPredicate(format: "%K == %@", T.identifierAttributeName, id as CVarArg)
-
-        do {
-            let results = try context.fetch(fetchRequest) as? [Self.T]
-            return results?.first
-        } catch {
-            throw CoreDataEntityRegistrarError.unexpectedError(error)
-        }
-    }
-}
-
-// Your concrete implementations will be more concise
-struct ChatEntityRegistrar: CoreDataEntityRegistrar {
-
-    let context: NSManagedObjectContext
-    let id: UUID
-
-    func applyInitialMetadata(_ entity: Chat) {
-        entity.created = Date()
-    }
 }
 ```

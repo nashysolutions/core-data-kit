@@ -8,8 +8,7 @@
 import Foundation
 import XCTest
 import CoreData
-
-@testable import CoreDataKit
+import CoreDataKit
 
 final class CoreDataEntityRegistrarTests: XCTestCase {
     
@@ -50,18 +49,19 @@ final class CoreDataEntityRegistrarTests: XCTestCase {
         }
     }
     
-    func testCreateRecordSuccessfully() throws {
+    func testQueryOrInsertRecordSuccessfully() throws {
+        
         /// Given
         ///
-        /// A MockManagedObjectProvider and an empty database.
+        /// A concrete implementation of `CoreDataEntityRegistrar`.
         let context = container.viewContext
         let id = UUID()
         let recordProvider = MockManagedObjectProvider(context: context, id: id)
         
         /// When
         ///
-        /// Call the `create` method.
-        try recordProvider.create()
+        /// Call the `queryOrInsert` method.
+        _ = try recordProvider.queryOrInsert(save: false)
         
         /// Then
         ///
@@ -74,68 +74,12 @@ final class CoreDataEntityRegistrarTests: XCTestCase {
         XCTAssertEqual(result.first?.identifier, id, "The created record does not have the expected identifier.")
     }
     
-    func testCreateRecordFailsWhenRecordAlreadyExists() throws {
-        /// Given
-        ///
-        /// A MockManagedObjectProvider and a pre-existing record with the same identifier.
-        let context = container.viewContext
-        let id = UUID()
-        
-        let existingRecord = MockManagedObject(context: context)
-        existingRecord.identifier = id
-        try context.save()
-        
-        let recordProvider = MockManagedObjectProvider(context: context, id: id)
-        
-        /// When
-        ///
-        /// Call the `create` method.
-        do {
-            try recordProvider.create()
-            XCTFail("Expected create() to throw an error, but it did not.")
-        } catch CoreDataEntityRegistrarError.alreadyExists {
-            /// Then
-            ///
-            /// The method should throw a `CoreDataEntityRegistrarError.alreadyExists` error.
-        } catch {
-            XCTFail("Unexpected error thrown: \(error).")
-        }
-    }
-    
-    func testCreateRecordHandlesUnexpectedFetchError() throws {
+    func testQueryOrInsertWhenAlreadyExists() throws {
         
         /// Given
         ///
-        /// A MockManagedObjectProvider and a mock error during fetch.
-        let context = MockNSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
-        context.persistentStoreCoordinator = container.persistentStoreCoordinator
-        /// Configure so that an error will occur when fetching is performed
-        context.simulateFetchError(MockError.fetchFailed)
-        
-        let id = UUID()
-        let recordProvider = MockManagedObjectProvider(context: context, id: id)
-        
-        /// When
-        ///
-        /// Call the `create` method, which performs a fetch to verify the record
-        /// doesn't already exist.
-        do {
-            try recordProvider.create()
-            XCTFail("Expected create() to throw an error, but it did not.")
-        } catch CoreDataEntityRegistrarError.unexpectedError(let error) {
-            /// Then
-            ///
-            /// The method should throw an `unexpectedError` containing the underlying fetch error.
-            XCTAssertEqual(error as? MockError, MockError.fetchFailed, "Unexpected error type: \(error).")
-        } catch {
-            XCTFail("Unexpected error thrown: \(error).")
-        }
-    }
-    
-    func testLoadReturnsWhenFound() throws {
-        /// Given
-        ///
-        /// A MockManagedObjectProvider with a pre-existing entity.
+        /// 1. A concrete implementation of `CoreDataEntityRegistrar`.
+        /// 2. A pre-existing entity saved in the db.
         let context = container.viewContext
         let id = UUID()
         
@@ -147,60 +91,25 @@ final class CoreDataEntityRegistrarTests: XCTestCase {
         
         /// When
         ///
-        /// Call the `load` method.
-        let result = try recordProvider.load()
+        /// Call the `queryOrInsert` method.
+        _ = try recordProvider.queryOrInsert(save: false)
         
         /// Then
         ///
-        /// The method should return the existing record.
-        XCTAssertNotNil(result, "Expected to find a record but got nil.")
-        XCTAssertEqual(result?.identifier, id, "Loaded record does not have the expected identifier.")
+        /// 1. Another record is not created.
+        /// 2. Instead the existing one is fetched.
+        let fetchRequest: NSFetchRequest<MockManagedObject> = .init(entityName: "MockManagedObject")
+        fetchRequest.predicate = NSPredicate(format: "identifier == %@", id as CVarArg)
+        let result = try context.count(for: fetchRequest)
+        XCTAssertTrue(result == 1)
     }
     
-    func testLoadReturnsNilWhenRecordNotFound() throws {
+    func testQuerySuccess() throws {
+        
         /// Given
         ///
-        /// A MockManagedObjectProvider with no matching entity in the database.
-        let context = container.viewContext
-        let recordProvider = MockManagedObjectProvider(context: context, id: UUID())
-        
-        /// When
-        ///
-        /// Call the `load` method.
-        let result = try recordProvider.load()
-        
-        /// Then
-        ///
-        /// The method should return nil.
-        XCTAssertNil(result, "Expected nil but found a record.")
-    }
-    
-    func testRequireThrowsWhenRecordNotFound() throws {
-        /// Given
-        ///
-        /// A MockManagedObjectProvider with no matching entity in the database.
-        let context = container.viewContext
-        let recordProvider = MockManagedObjectProvider(context: context, id: UUID())
-        
-        /// When
-        ///
-        /// Call the `require` method.
-        do {
-            _ = try recordProvider.require()
-            XCTFail("Expected require() to throw an error, but it did not.")
-        } catch CoreDataEntityRegistrarError.notFound {
-            /// Then
-            ///
-            /// The method should throw the `notFound` error.
-        } catch {
-            XCTFail("Unexpected error thrown: \(error).")
-        }
-    }
-    
-    func testRequireReturnsRecordWhenFound() throws {
-        /// Given
-        ///
-        /// A MockManagedObjectProvider with a pre-existing entity.
+        /// 1. A concrete implementation of `CoreDataEntityRegistrar`.
+        /// 2. A pre-existing entity saved in the db.
         let context = container.viewContext
         let id = UUID()
         
@@ -212,16 +121,88 @@ final class CoreDataEntityRegistrarTests: XCTestCase {
         
         /// When
         ///
-        /// Call the `require` method.
-        let result = try recordProvider.require()
+        /// We call the `query` method.
+        let result = try recordProvider.query()
         
         /// Then
         ///
         /// The method should return the existing record.
-        XCTAssertEqual(result.identifier, id, "Required record does not have the expected identifier.")
+        XCTAssertEqual(result.identifier, id, "Loaded record does not have the expected identifier.")
     }
-}
-
-enum MockError: Error {
-    case fetchFailed
+    
+    func testQueryNotFound() {
+        /// Given
+        ///
+        /// 1. A concrete implementation of `CoreDataEntityRegistrar`.
+        /// 2. No pre-existing records saved in db.
+        let context = container.viewContext
+        let recordProvider = MockManagedObjectProvider(context: context, id: UUID())
+        
+        /// When
+        ///
+        /// We call the `query` method.
+        do {
+            let result = try recordProvider.query()
+            XCTFail("Expected throw. Found: \(result)")
+        } catch CoreDataEntityError.notFound {
+            /// Then
+            ///
+            /// The method should throw.
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+    
+    func testInsert() throws {
+        /// Given
+        ///
+        /// 1. A concrete implementation of `CoreDataEntityRegistrar`.
+        /// 2. No pre-existing records saved in db.
+        let context = container.viewContext
+        let id = UUID()
+        let recordProvider = MockManagedObjectProvider(context: context, id: id)
+        
+        /// When
+        ///
+        /// We call the `insert` method.
+        _ = try recordProvider.insert(save: false)
+        
+        /// Then
+        ///
+        /// 1. We do not throw.
+        /// 2. A record exists in the db.
+        let fetchRequest: NSFetchRequest<MockManagedObject> = .init(entityName: "MockManagedObject")
+        fetchRequest.predicate = NSPredicate(format: "identifier == %@", id as CVarArg)
+        let count = try context.count(for: fetchRequest)
+        XCTAssertTrue(count == 1)
+    }
+    
+    func testInsertWithPreExistingRecord() throws {
+        /// Given
+        ///
+        /// 1. A concrete implementation of `CoreDataEntityRegistrar`.
+        /// 2. A pre-existing record saved in db.
+        let context = container.viewContext
+        let id = UUID()
+        let recordProvider = MockManagedObjectProvider(context: context, id: id)
+        
+        let record = MockManagedObject(context: context)
+        record.identifier = id
+        try context.save()
+        
+        /// When
+        ///
+        /// We call the `insert` method.
+        do {
+            let result = try recordProvider.insert(save: false)
+            XCTFail("Expected throw. Found: \(result)")
+        } catch CoreDataEntityError.alreadyExists(let objectID) {
+            /// Then
+            ///
+            /// The method should throw.
+            XCTAssertEqual(record.objectID, objectID)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
 }

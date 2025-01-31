@@ -11,7 +11,7 @@ import CoreDataKit
 
 final class MockManagedObject: NSManagedObject, IdentifiableEntity {
     
-    let identifierAttributeName: String = "identifier"
+    static let identifierAttributeName: String = "identifier"
     
     var id: UUID {
         get { return self.identifier }
