@@ -2,12 +2,13 @@
 
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange?logo=swift) ![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20visionOS%20%7C%20tvOS%20%7C%20watchOS-blue?logo=apple)
 
-A lightweight wrapper for managing essential metadata of Core Data entities. This provides a standardised way to ensure entities are uniquely identifiable and include required metadata, such as creation timestamps.
+A lightweight framework that simplifies entity management in Core Data. It provides a structured approach for handling unique identifiers, metadata, and entity loading while keeping concerns separate from business logic.
 
 ## Features
 - Ensures entities have a unique identifier.
 - Provides a structured approach for loading and creating database records.
-- Applies essential metadata when a new entity is created.
+- Automatically applies essential metadata to new entities.
+- Utilises DatabaseQueryResult to provide insight into entity retrieval and creation.
 - Keeps concerns separate from business logic.
 - Prevents duplicate record creation.
 
@@ -34,9 +35,13 @@ let package = Package(
 )
 ```
 
+---
+
 ## Usage
 
-To conform to CoreDataKit, create an entity that adopts `IdentifiableEntity` and define a corresponding registrar. The default implementations of each make certain assumptions about your model, so be sure to verify them.
+### Defining an Entity
+
+To use CoreDataKit, your entity should conform to IdentifiableEntity, ensuring it has a unique identifier. You should also define a registrar that manages how the entity is loaded and inserted.
 
 ```swift
 import CoreData
@@ -49,6 +54,7 @@ class Chat: NSManagedObject, IdentifiableEntity {
    }
    
    @NSManaged var identifier: UUID
+   @NSManaged var created: Date
    /// etc
 }
 
@@ -64,7 +70,31 @@ struct ChatEntityRegistrar: CoreDataEntityRegistrar {
 }
 ```
 
-### Query by primary key (someUUID)
+---
+
+## Querying Entities
+
+### Handling DatabaseQueryResult
+
+When querying an entity, CoreDataKit emits a DatabaseQueryResult, which describes the result of the operation. This allows you to respond to different outcomes, such as finding an existing entity, inserting a new one, or handling errors.
+
+```swift
+let query = RegistrarQuery<ChatEntityRegistrar>(identifier: someUUID, context: context)
+query.performQuery()
+
+switch query.result {
+case .success(let chat):
+    print("Chat exists:", chat)
+case .performed:
+    print("No chat found for this identifier.")
+case .failure(let error):
+    print("Failed to fetch chat: \(error)")
+case .none:
+    print("Query not executed yet.")
+}
+```
+
+Alternatively, you can query using CoreDataEntityRegistrar directly:
 
 ```swift
 do {
@@ -76,29 +106,42 @@ do {
 } catch {
     //
 }
+```
 
+---
+
+### Querying or Inserting an Entity
+
+If an entity does not exist, you may want to insert a new record. CoreDataKit allows you to fetch or create an entity in a single step.
+
+```swift
 do {
     let registrar = ChatEntityRegistrar(context: context, id: someUUID)
     let chat: Chat = try registrar.queryOrInsert()
+    
     print("Chat already existed or was created:", chat)
+
     if context.hasChanges {
         try context.save()
     }
-}
 } catch {
-    //
+    print("Failed to fetch or insert entity:", error)
 }
 ```
 
-### Inserting
+---
+
+### Inserting a New Entity
+
+To explicitly create a new entity, use insert(). If an entity with the same primary key already exists, an error is thrown.
 
 ```swift
 do {
     let registrar = ChatEntityRegistrar(context: context, id: UUID())
     try registrar.insert(save: true)
 } catch CoreDataEntityError.alreadyExists(let objectID) {
-    //
+    print("Entity already exists with ID:", objectID)
 } catch {
-    print("Failed to create entity: \(error)")
+    print("Failed to create entity:", error)
 }
 ```

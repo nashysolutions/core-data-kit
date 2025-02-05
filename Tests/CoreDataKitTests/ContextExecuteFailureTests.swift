@@ -22,11 +22,11 @@ final class ContextExecuteFailureTests: XCTestCase {
         concurrencyType: .mainQueueConcurrencyType
     )
     
-    private let id = UUID()
-    
-    var provider: MockManagedObjectProvider {
-        MockManagedObjectProvider(context: context, id: id)
+    var registrar: MockEntityRegistrar {
+        MockEntityRegistrar(identifier: identifier, context: context)
     }
+    
+    private let identifier = UUID()
     
     override func setUp() {
         super.setUp()
@@ -34,14 +34,14 @@ final class ContextExecuteFailureTests: XCTestCase {
     }
     
     func testInsertFailsForOtherReason() {
-        XCTAssertThrowsError(try provider.insert(save: false))
+        XCTAssertThrowsError(try registrar.insert(save: false))
     }
     
     func testQueryFailsForOtherReason() {
-        XCTAssertThrowsError(try provider.query())
+        XCTAssertThrowsError(try registrar.query())
     }
     
     func testQueryOrInsertFailsForOtherReason() {
-        XCTAssertThrowsError(try provider.queryOrInsert(save: false))
+        XCTAssertThrowsError(try registrar.queryOrInsert(save: false))
     }
 }
