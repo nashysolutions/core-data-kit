@@ -76,7 +76,7 @@ struct ChatEntityRegistrar: CoreDataEntityRegistrar {
 
 ### Handling DatabaseQueryResult
 
-When querying an entity, CoreDataKit emits a DatabaseQueryResult, which describes the result of the operation. This allows you to respond to different outcomes, such as finding an existing entity, inserting a new one, or handling errors.
+When performing a query a result is emitted, which describes the result of the operation. This allows you to respond to different outcomes, such as finding an existing entity, inserting a new one, or handling errors.
 
 ```swift
 let query = RegistrarQuery<ChatEntityRegistrar>(identifier: someUUID, context: context)
