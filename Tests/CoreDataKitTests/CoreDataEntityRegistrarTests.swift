@@ -76,7 +76,7 @@ final class CoreDataEntityRegistrarTests: XCTestCase {
             ///
             /// The method should return the existing record.
             let first = records.first
-            XCTAssertEqual(first?.identifier, identifier, "Loaded record does not have the expected identifier.")
+            XCTAssertEqual(first.identifier, identifier, "Loaded record does not have the expected identifier.")
         case .performed:
             XCTFail("Expected throw")
         default:
