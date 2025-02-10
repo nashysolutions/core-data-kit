@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreData
+import NonEmpty
 
 /// A generic query class for executing Core Data fetch requests.
 open class DatabaseQuery<T: NSFetchRequestResult>: DatabaseQueryable, ObservableObject {
@@ -20,7 +21,7 @@ open class DatabaseQuery<T: NSFetchRequestResult>: DatabaseQueryable, Observable
     /// The current result of the query operation.
     ///
     /// This property is used to track the state of a database query.
-    @Published public var result: DatabaseQueryResult<[T]>?
+    @Published public var result: DatabaseQueryResult<NonEmpty<[T]>>?
     
     /// Initializes a query with a fetch request and managed object context.
     ///

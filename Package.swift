@@ -17,9 +17,16 @@ let package = Package(
             targets: ["CoreDataKit"]
         ),
     ],
+    dependencies: [
+        .package(url: "git@github.com:pointfreeco/swift-nonempty.git", .upToNextMinor(from: "0.5.0"))
+    ],
     targets: [
         .target(
-            name: "CoreDataKit"),
+            name: "CoreDataKit",
+            dependencies: [
+                .product(name: "NonEmpty", package: "swift-nonempty")
+            ]
+        ),
         .testTarget(
             name: "CoreDataKitTests",
             dependencies: ["CoreDataKit"]

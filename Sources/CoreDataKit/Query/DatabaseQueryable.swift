@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreData
+import NonEmpty
 
 /// A protocol that defines a queryable database entity.
 ///
@@ -18,7 +19,7 @@ public protocol DatabaseQueryable: AnyObject {
     associatedtype Record: NSFetchRequestResult
 
     /// The result of a query operation.
-    var result: DatabaseQueryResult<[Record]>? { get set }
+    var result: DatabaseQueryResult<NonEmpty<[Record]>>? { get set }
 
     /// The Core Data fetch request used to retrieve records.
     var fetchRequest: NSFetchRequest<Record> { get }
@@ -38,7 +39,13 @@ public extension DatabaseQueryable {
     func perform(timestamp: Date = Date()) {
         do {
             let fetchedObjects = try context.fetch(fetchRequest) as [Record]
-            result = fetchedObjects.isEmpty ? .performed(timestamp) : .records(fetchedObjects)
+            switch fetchedObjects.isEmpty {
+            case true:
+                result = .performed(timestamp)
+            case false:
+                let records = NonEmpty(rawValue: fetchedObjects)!
+                result = .records(records)
+            }
         } catch {
             result = .failure(error)
         }

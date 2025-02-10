@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import NonEmpty
 
 /// Represents the outcome of a database loading operation.
 ///
