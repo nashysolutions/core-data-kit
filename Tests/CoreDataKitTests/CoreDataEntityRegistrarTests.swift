@@ -71,7 +71,7 @@ final class CoreDataEntityRegistrarTests: XCTestCase {
         recordProvider.perform()
         
         switch recordProvider.result {
-        case .success(let records):
+        case .records(let records):
             /// Then
             ///
             /// The method should return the existing record.

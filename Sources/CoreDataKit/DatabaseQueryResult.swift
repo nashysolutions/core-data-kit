@@ -17,8 +17,8 @@ public enum DatabaseQueryResult<T> {
     
     /// The operation completed successfully and returned the expected result.
     ///
-    /// - Parameter value: The successfully loaded entity of type `T`.
-    case success(T)
+    /// - Parameter value: The successfully loaded non-empty entity of type `T`.
+    case records(T)
 
     /// The operation failed due to an error.
     ///

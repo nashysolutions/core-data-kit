@@ -38,7 +38,7 @@ public extension DatabaseQueryable {
     func perform(timestamp: Date = Date()) {
         do {
             let fetchedObjects = try context.fetch(fetchRequest) as [Record]
-            result = fetchedObjects.isEmpty ? .performed(timestamp) : .success(fetchedObjects)
+            result = fetchedObjects.isEmpty ? .performed(timestamp) : .records(fetchedObjects)
         } catch {
             result = .failure(error)
         }
