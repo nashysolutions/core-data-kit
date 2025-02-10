@@ -23,7 +23,7 @@ import PackageDescription
 
 let package = Package(
     dependencies: [
-        .package(url: "git@github.com:nashysolutions/core-data-kit.git", .upToNextMinor(from: "2.0.0")),
+        .package(url: "git@github.com:nashysolutions/core-data-kit.git", .upToNextMinor(from: "4.0.0")),
     ],
     targets: [
         .target(
@@ -76,15 +76,17 @@ struct ChatEntityRegistrar: CoreDataEntityRegistrar {
 
 ### Handling DatabaseQueryResult
 
-When performing a query a result is emitted, which describes the result of the operation. This allows you to respond to different outcomes, such as finding an existing entity, inserting a new one, or handling errors.
+When executing a query, a result is emitted that describes the outcome of the operation. This enables you to handle different scenarios, such as retrieving an existing entity, inserting a new one, or managing errors. Although you receive a collection of results, the query itself targets a single identifier. In this case, the array will contain a single item for .results(let chats):.
 
 ```swift
 let query = RegistrarQuery<ChatEntityRegistrar>(identifier: someUUID, context: context)
 query.performQuery()
 
 switch query.result {
-case .success(let chat):
-    print("Chat exists:", chat)
+case .results(let chats): // A collection - compile time guarantee NonEmpty<Chat>.
+    // For registrar query, the array will contain 1 object here.
+    let first: Chat = chat.first // Not an optional value
+    print("Chat exists:", first)
 case .performed:
     print("No chat found for this identifier.")
 case .failure(let error):
